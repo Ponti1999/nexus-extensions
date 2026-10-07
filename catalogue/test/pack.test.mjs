@@ -66,3 +66,17 @@ test('links are refused, and node_modules and .git are left out', (t) => {
   }
   assert.match(packDirectory(dir).problems.join(), /links are not allowed/);
 });
+
+test('a script that only imports the packer does not run its command line, even with a similar name', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { pathToFileURL, fileURLToPath } = await import('node:url');
+  const dir = mkdtempSync(join(tmpdir(), 'nexus-guard-'));
+  const packer = pathToFileURL(fileURLToPath(new URL('../pack.mjs', import.meta.url))).href;
+  writeFileSync(join(dir, 'my-pack.mjs'), `import { packDirectory } from '${packer}';\nconsole.log(typeof packDirectory);\n`);
+  const run = spawnSync(process.execPath, [join(dir, 'my-pack.mjs')], { encoding: 'utf8' });
+  assert.equal(run.status, 0);
+  assert.equal(run.stdout.trim(), 'function');
+  assert.equal(run.stderr, ''); // no "usage:" line, no exit code 2
+});

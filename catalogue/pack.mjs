@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { lstatSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { crc32, deflateRawSync } from 'node:zlib';
+import { isMain } from './is-main.mjs';
 
 export const MAX_FILES = 200;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -92,4 +93,4 @@ function main(argv) {
   return 0;
 }
 
-if (process.argv[1]?.endsWith('pack.mjs')) process.exitCode = main(process.argv.slice(2)); // run as a command, not imported by a test
+if (isMain(import.meta.url)) process.exitCode = main(process.argv.slice(2)); // run as a command, not imported by a test
