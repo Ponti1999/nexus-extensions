@@ -66,7 +66,13 @@ function main(argv) {
     const keyFile = flag('--key');
     if (!keyFile) { console.error('usage: sign.mjs sign [index.json] --key <private-key-file>'); return 2; }
     try {
-      writeFileSync(sigPath, `${JSON.stringify(signBytes(readFileSync(indexPath), readFileSync(keyFile, 'utf8')), null, 2)}\n`);
+      const bytes = readFileSync(indexPath);
+      // The repo and GitHub hold LF. A copy that a checkout turned into CRLF would be signed here and then never verify where it is served from.
+      if (bytes.includes(13)) {
+        console.error(`${indexPath} contains carriage returns (CRLF line endings): not signing it. Restore it exactly as committed (git checkout -- ${indexPath}) and sign again.`);
+        return 2;
+      }
+      writeFileSync(sigPath, `${JSON.stringify(signBytes(bytes, readFileSync(keyFile, 'utf8')), null, 2)}\n`);
     } catch (e) { console.error(`Cannot sign: ${e.message}`); return 2; }
     console.log(`Wrote ${sigPath}`);
     return 0;
