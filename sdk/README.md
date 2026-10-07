@@ -43,6 +43,19 @@ restarts it (a few times, then it leaves it off until the person turns it on aga
 The API has no way to send raw reports to the keyboard, write its memory or flash it, so an extension can't either. An extension runs as the person's own
 Windows user and is **not sandboxed**: the app shows its permissions before install, and the stable channel only runs reviewed extensions.
 
+## Try it: an example you can copy
+
+`examples/hello-plugin` is the smallest extension that runs code. It was run for real by Nexus Studio's plugin host: installed from its `.nexusext` and started with its own
+token, it connected, used the permissions its manifest asked for, saved a setting, and left cleanly when it was turned off.
+
+```
+cd sdk && npm install && npm run build        once
+node examples/hello-plugin/build.mjs          copies the built SDK in beside main.mjs and packs hello-plugin.nexusext
+```
+
+Add the file in Nexus Studio's Extensions page (a sideloaded extension runs on the beta channel; the stable channel only runs reviewed ones). An extension carries its own
+files, including the SDK: the app does not install packages for it. `node catalogue/pack.mjs <folder>` packs any folder that has a `nexus-plugin.json`.
+
 ## Develop
 
 ```
