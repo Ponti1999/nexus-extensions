@@ -49,6 +49,27 @@ disagree with what the person installs.
 4. **Approval is a human merging the pull request.** The checks only find mistakes; they do not decide what is safe to run. A code extension runs as the
    person's own Windows user and is not sandboxed, so read what an extension does before merging it.
 
+## Signing
+
+Nexus Studio only trusts a catalogue the Founder signed, because the file decides which code people run. `index.json.sig` sits beside `index.json`:
+
+```json
+{ "alg": "ed25519", "keyId": "<first 16 hex characters of the SHA-256 of the public key>", "signature": "<base64>" }
+```
+
+It covers the exact bytes of `index.json`, so any edit, even a space, needs signing again. The app has the public keys it trusts built in (`catalogue/trusted-keys.json`
+here is the same list); with none, **no catalogue verifies and the Store offers nothing**. The private key lives only with the Founder, never in this repo.
+
+```
+node catalogue/sign.mjs keygen <private-key-file>        once: make the key, then add the printed public key to trusted-keys.json AND to the app
+node catalogue/sign.mjs sign --key <private-key-file>     after merging a catalogue change: write index.json.sig, commit it
+node catalogue/sign.mjs verify                            check index.json.sig against trusted-keys.json
+```
+
+Between a merge and the signing commit the signature does not match, and the app keeps the last catalogue it verified. Keys can be added and old ones dropped
+(the signature names its key), so a lost or leaked key is replaced by shipping an app version with a new public key. Back the private key up: losing it means
+nothing new can be signed until that happens.
+
 ## Adding a version (a pull request)
 
 1. Publish a GitHub release in your repo with the `.nexusext` attached.
@@ -67,5 +88,5 @@ Needs Node 22 or newer. The validator has no dependencies.
 
 ## Not built yet
 
-The Store page in the app that reads this file, the signature on the catalogue (so the app can tell this file is the real one), the compatibility job that fills
-in `testedWith`, and the submit-from-the-app flow. Until the app reads the catalogue, this file and its checks are the whole of it.
+The Store page in the app that reads this file, the compatibility job that fills in `testedWith`, and the submit-from-the-app flow. The app has the signature check
+(`extensions/catalogue_signature.py`) but no signing key in it yet. Until the app reads the catalogue, this file and its checks are the whole of it.
