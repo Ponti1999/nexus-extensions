@@ -1,0 +1,11 @@
+{
+  "id": "com.example.sunset-lights",
+  "name": "Sunset lights",
+  "version": "1.0.0",
+  "author": "Nexus Studio examples",
+  "type": "pack",
+  "nexusApi": "^1.17",
+  "entry": "pack.json",
+  "description": "Warm lighting presets.",
+  "permissions": []
+}
