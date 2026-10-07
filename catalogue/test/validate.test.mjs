@@ -9,12 +9,14 @@ const REPO = 'https://github.com/someone/night-pack';
 const version = (over = {}) => ({
   version: '1.0.0',
   nexusApi: '^1.2',
+  type: 'pack',
+  permissions: ['profiles.read'],
   url: `${REPO}/releases/download/v1.0.0/night-pack.nexusext`,
   sha256: 'a'.repeat(64),
   size: 1234,
   ...over,
 });
-const catalogue = (versions = [version()], over = {}) => ({ schemaVersion: 1, extensions: [{ id: 'com.example.night-pack', repo: REPO, versions, ...over }] });
+const catalogue = (versions = [version()], over = {}) => ({ schemaVersion: 1, extensions: [{ id: 'com.example.night-pack', repo: REPO, name: 'Night pack', author: 'Someone', description: 'Dark lighting presets.', versions, ...over }] });
 
 /** A zip with the given files, each stored (0) or deflated (8). CRCs are zero: the reader does not use them. */
 function zip(files, method = 8) {
@@ -59,6 +61,12 @@ test('a download must be a .nexusext release asset of the entry repo', () => {
   }
 });
 
+test('the card fields are required and bounded', () => {
+  const text = validateIndex(catalogue([version({ type: 'exe', permissions: ['Bad Name', 'profiles.read', 'profiles.read'], minAppVersion: '5', minFirmwareBuild: -1 })], { name: '', author: 'x'.repeat(61), description: 'y'.repeat(301) })).join(' ');
+  for (const part of ["'name'", "'author'", "'description'", "'type'", "'permissions'", "'minAppVersion'", "'minFirmwareBuild'"]) assert.match(text, new RegExp(part));
+  assert.deepEqual(validateIndex(catalogue([version({ permissions: [], minAppVersion: '5.0.0', minFirmwareBuild: 30724 })], { description: undefined })), []);
+});
+
 test('duplicates and unknown keys are refused', () => {
   assert.ok(validateIndex(catalogue([version(), version()])).some((p) => /listed twice/.test(p)));
   const two = { schemaVersion: 1, extensions: [catalogue().extensions[0], catalogue().extensions[0]] };
@@ -92,7 +100,7 @@ test('an author cannot write testedWith on a new version', () => {
 
 // --- the zip reader and the download check ---------------------------------------------------------------------------------------
 
-const manifest = (over = {}) => JSON.stringify({ id: 'com.example.night-pack', version: '1.0.0', nexusApi: '^1.2', ...over });
+const manifest = (over = {}) => JSON.stringify({ id: 'com.example.night-pack', version: '1.0.0', nexusApi: '^1.2', name: 'Night pack', author: 'Someone', description: 'Dark lighting presets.', type: 'pack', permissions: ['profiles.read'], ...over });
 const served = (bytes, status = 200) => async () => ({ ok: status === 200, status, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
 const entryFor = (bytes, over = {}) => version({ size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), ...over });
 
@@ -110,21 +118,27 @@ test('the zip reader reads stored and deflated entries and refuses an unknown me
 
 test('a matching download passes; a wrong size, hash, id, version or API is reported', async () => {
   const good = zip({ 'nexus-plugin.json': manifest() });
-  assert.deepEqual(await checkRemote('com.example.night-pack', entryFor(good), served(good)), []);
-  assert.match((await checkRemote('com.example.night-pack', entryFor(good, { size: 5 }), served(good))).join(), /'size' says 5/);
-  assert.match((await checkRemote('com.example.night-pack', entryFor(good, { sha256: 'd'.repeat(64) }), served(good))).join(), /'sha256'/);
+  assert.deepEqual(await checkRemote(catalogue().extensions[0], entryFor(good), served(good)), []);
+  assert.match((await checkRemote(catalogue().extensions[0], entryFor(good, { size: 5 }), served(good))).join(), /'size' says 5/);
+  assert.match((await checkRemote(catalogue().extensions[0], entryFor(good, { sha256: 'd'.repeat(64) }), served(good))).join(), /'sha256'/);
   const other = zip({ 'nexus-plugin.json': manifest({ id: 'com.example.other', version: '2.0.0', nexusApi: '^1.9' }) });
-  const text = (await checkRemote('com.example.night-pack', entryFor(other), served(other))).join('\n');
+  const text = (await checkRemote(catalogue().extensions[0], entryFor(other), served(other))).join('\n');
   assert.match(text, /manifest's id is 'com.example.other'/);
   assert.match(text, /manifest's version is '2.0.0'/);
   assert.match(text, /manifest's nexusApi is '\^1.9'/);
 });
 
+test('what the Store shows must be what the manifest says', async () => {
+  const lying = zip({ 'nexus-plugin.json': manifest({ name: 'Other', author: 'Else', description: 'x', type: 'plugin', permissions: ['network'], minAppVersion: '6.0.0', minFirmwareBuild: 1 }) });
+  const text = (await checkRemote(catalogue().extensions[0], entryFor(lying), served(lying))).join(' ');
+  for (const part of ['name is "Other"', 'author is "Else"', 'description differs', "type is 'plugin'", 'asks for \\[network\\]', 'minAppVersion differs', 'minFirmwareBuild differs']) assert.match(text, new RegExp(part));
+});
+
 test('a missing manifest, a nested manifest, a failed download and a thrown fetch are each a problem, not a crash', async () => {
   const nested = zip({ 'folder/nexus-plugin.json': manifest() });
-  assert.match((await checkRemote('com.example.night-pack', entryFor(nested), served(nested))).join(), /no nexus-plugin.json at its top level/);
-  assert.match((await checkRemote('com.example.night-pack', version(), served(Buffer.alloc(0), 404))).join(), /HTTP 404/);
-  assert.match((await checkRemote('com.example.night-pack', version(), async () => { throw new Error('offline'); })).join(), /offline/);
+  assert.match((await checkRemote(catalogue().extensions[0], entryFor(nested), served(nested))).join(), /no nexus-plugin.json at its top level/);
+  assert.match((await checkRemote(catalogue().extensions[0], version(), served(Buffer.alloc(0), 404))).join(), /HTTP 404/);
+  assert.match((await checkRemote(catalogue().extensions[0], version(), async () => { throw new Error('offline'); })).join(), /offline/);
   const junk = Buffer.from('definitely not a zip file');
-  assert.match((await checkRemote('com.example.night-pack', entryFor(junk), served(junk))).join(), /cannot read the zip/);
+  assert.match((await checkRemote(catalogue().extensions[0], entryFor(junk), served(junk))).join(), /cannot read the zip/);
 });
