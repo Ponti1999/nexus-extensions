@@ -1,0 +1,11 @@
+{
+  "id": "com.example.screen-layouts",
+  "name": "Screen layouts",
+  "version": "1.0.0",
+  "author": "Nexus Studio examples",
+  "type": "pack",
+  "nexusApi": "^1.18",
+  "entry": "pack.json",
+  "description": "Status page layouts for the keyboard's OLED.",
+  "permissions": []
+}
