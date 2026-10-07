@@ -50,3 +50,23 @@ test('a rotated key set: either trusted key verifies its own signatures', () => 
   assert.equal(verifyBytes(index, signBytes(index, a.privatePem), both).ok, true);
   assert.equal(verifyBytes(index, signBytes(index, b.privatePem), both).ok, true);
 });
+
+test('the sign command refuses a file with CRLF line endings and writes no signature', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'nexus-sign-'));
+  const key = generateKey();
+  writeFileSync(join(dir, 'key.pem'), key.privatePem);
+  writeFileSync(join(dir, 'crlf.json'), '{\r\n  "schemaVersion": 1\r\n}\r\n');
+  writeFileSync(join(dir, 'lf.json'), '{\n  "schemaVersion": 1\n}\n');
+  const script = new URL('../sign.mjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const bad = spawnSync(process.execPath, [script, 'sign', join(dir, 'crlf.json'), '--key', join(dir, 'key.pem')], { encoding: 'utf8' });
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /carriage returns/);
+  assert.equal(existsSync(join(dir, 'crlf.json.sig')), false);
+  const good = spawnSync(process.execPath, [script, 'sign', join(dir, 'lf.json'), '--key', join(dir, 'key.pem')], { encoding: 'utf8' });
+  assert.equal(good.status, 0);
+  assert.equal(existsSync(join(dir, 'lf.json.sig')), true);
+});
