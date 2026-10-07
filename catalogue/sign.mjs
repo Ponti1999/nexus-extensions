@@ -9,6 +9,7 @@
 // Exit code 0 = ok, 1 = a signature problem, 2 = could not run.
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { isMain } from './is-main.mjs';
 
 export const ALG = 'ed25519';
 const SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex'); // the fixed DER header of an Ed25519 public key
@@ -90,4 +91,4 @@ function main(argv) {
   return 2;
 }
 
-if (process.argv[1]?.endsWith('sign.mjs')) process.exitCode = main(process.argv.slice(2)); // run as a command, not imported by a test
+if (isMain(import.meta.url)) process.exitCode = main(process.argv.slice(2)); // run as a command, not imported by a test

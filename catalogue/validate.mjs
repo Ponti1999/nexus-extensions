@@ -8,6 +8,7 @@
 // the entry. Exit code 0 = no problem, 1 = problems (all printed), 2 = could not run.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { isMain } from './is-main.mjs';
 import { listEntries, readEntry } from './zip.mjs';
 
 // The same rules as the app's manifest loader (nexus_studio/extensions/packs/manifest.py, semver.py).
@@ -175,6 +176,6 @@ async function main(argv) {
   return problems.length ? 1 : 0;
 }
 
-if (process.argv[1]?.endsWith('validate.mjs')) { // run as a command, not imported by a test
+if (isMain(import.meta.url)) { // run as a command, not imported by a test
   process.exitCode = await main(process.argv.slice(2));
 }
