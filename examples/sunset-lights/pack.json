@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "kind": "lighting-presets",
+  "presets": [
+    { "id": "sunset", "name": "Sunset", "lighting": { "mode": "solid", "colour": "#ff8a3d", "brightness": 70, "speed": 50 } },
+    { "id": "embers", "name": "Embers", "lighting": { "mode": "solid", "colour": "#ff4d6d", "brightness": 40, "speed": 50 } }
+  ]
+}
