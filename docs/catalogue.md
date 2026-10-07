@@ -91,7 +91,7 @@ with `node catalogue/sign.mjs verify <the files downloaded from the live address
 ## Adding a version (a pull request)
 
 1. Publish a GitHub release in your repo with the `.nexusext` attached.
-2. Work out its SHA-256 and size (PowerShell: `Get-FileHash .\night-pack.nexusext -Algorithm SHA256`).
+2. Build the file from your folder with `node catalogue/pack.mjs <folder> <name>.nexusext`: a reproducible archive within the app's limits, and it prints the `sha256` and `size` lines to paste.
 3. Add one object to the `versions` list of your entry (or a whole entry for a new extension) in `index.json`, and open a pull request.
 
 ## Checking locally
