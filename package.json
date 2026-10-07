@@ -1,0 +1,10 @@
+{
+  "name": "nexus-extensions",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test catalogue/test/*.test.mjs",
+    "validate": "node catalogue/validate.mjs index.json"
+  }
+}

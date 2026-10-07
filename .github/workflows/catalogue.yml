@@ -1,0 +1,39 @@
+# Checks a pull request that touches the catalogue, the validator or the SDK. Ubuntu only, nothing else: this repo is public, so the minutes are free,
+# and the path filter keeps it from running on anything unrelated.
+# The checks only find mistakes. Approval is a person merging: read any change to catalogue/ itself, because a pull request runs its own copy of it.
+name: catalogue
+on:
+  pull_request:
+    paths:
+      - 'index.json'
+      - 'catalogue/**'
+      - 'sdk/**'
+      - '.github/workflows/catalogue.yml'
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validator tests
+        run: npm test
+      - name: The catalogue, against the branch it targets (new versions are downloaded and checked)
+        run: |
+          if git cat-file -e "origin/${{ github.base_ref }}:index.json" 2>/dev/null; then
+            git show "origin/${{ github.base_ref }}:index.json" > "$RUNNER_TEMP/base-index.json"
+          else
+            echo '{"schemaVersion":1,"extensions":[]}' > "$RUNNER_TEMP/base-index.json"
+          fi
+          node catalogue/validate.mjs index.json --base "$RUNNER_TEMP/base-index.json" --remote
+      - name: SDK
+        working-directory: sdk
+        run: |
+          npm ci
+          npm test
