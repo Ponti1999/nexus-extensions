@@ -1,0 +1,11 @@
+{
+  "id": "com.example.hello-plugin",
+  "name": "Hello plugin",
+  "version": "1.0.0",
+  "author": "Nexus Studio examples",
+  "type": "plugin",
+  "nexusApi": "^1.0",
+  "entry": "main.mjs",
+  "description": "The smallest extension that runs code: says hello, remembers the layer.",
+  "permissions": ["signals.read", "device.read", "settings.read", "settings.write"]
+}
