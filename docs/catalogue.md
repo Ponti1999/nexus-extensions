@@ -81,10 +81,17 @@ Between a merge and the signing commit the signature does not match, and the app
 (the signature names its key), so a lost or leaked key is replaced by shipping an app version with a new public key. Back the private key up: losing it means
 nothing new can be signed until that happens.
 
+### After you sign: wait a few minutes
+
+GitHub serves the raw files through a cache that can take about five minutes to refresh, and `index.json` and `index.json.sig` can refresh at different moments. For that
+window the app may see a new `index.json` with the old signature, which fails the check, and it keeps showing the last catalogue that verified. That is the design,
+not a fault: nothing is lost and nothing unverified is shown. Always sign, commit the signature **in the same commit** as the catalogue change when you can, and check
+with `node catalogue/sign.mjs verify <the files downloaded from the live address>` (or the GitHub API, which is not cached) before telling anyone it is live.
+
 ## Adding a version (a pull request)
 
 1. Publish a GitHub release in your repo with the `.nexusext` attached.
-2. Work out its SHA-256 and size (PowerShell: `Get-FileHash .\night-pack.nexusext -Algorithm SHA256`).
+2. Build the file from your folder with `node catalogue/pack.mjs <folder> <name>.nexusext`: a reproducible archive within the app's limits, and it prints the `sha256` and `size` lines to paste.
 3. Add one object to the `versions` list of your entry (or a whole entry for a new extension) in `index.json`, and open a pull request.
 
 ## Checking locally
