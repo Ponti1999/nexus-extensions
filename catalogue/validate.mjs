@@ -17,8 +17,11 @@ export const API_RANGE = /^\^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const REPO = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 export const MAX_ZIP_BYTES = 20 * 1024 * 1024; // the app refuses a file over 20 MB
-const ENTRY_KEYS = new Set(['id', 'repo', 'versions']);
-const VERSION_KEYS = new Set(['version', 'nexusApi', 'url', 'sha256', 'size', 'testedWith']);
+const ENTRY_KEYS = new Set(['id', 'repo', 'name', 'author', 'description', 'versions']);
+const VERSION_KEYS = new Set(['version', 'nexusApi', 'type', 'permissions', 'minAppVersion', 'minFirmwareBuild', 'url', 'sha256', 'size', 'testedWith']);
+const PERMISSION = /^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*$/;
+const NAME_MAX = 60;
+const DESCRIPTION_MAX = 300;
 const TESTED_KEYS = new Set(['app', 'result']);
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -41,6 +44,10 @@ export function validateIndex(index) {
     if (typeof entry.id !== 'string' || !ID.test(entry.id)) problems.push(`${where}: 'id' must be a lower-case reverse-domain name like com.example.my-pack.`);
     else if (seen.has(entry.id)) problems.push(`${where}: listed twice.`);
     else seen.add(entry.id);
+    for (const field of ['name', 'author']) {
+      if (typeof entry[field] !== 'string' || entry[field].trim() === '' || entry[field].length > NAME_MAX) problems.push(`${where}: '${field}' must be text of 1 to ${NAME_MAX} characters.`);
+    }
+    if (entry.description !== undefined && (typeof entry.description !== 'string' || entry.description.length > DESCRIPTION_MAX)) problems.push(`${where}: 'description' must be text of at most ${DESCRIPTION_MAX} characters.`);
     if (typeof entry.repo !== 'string' || !REPO.test(entry.repo)) problems.push(`${where}: 'repo' must be an https://github.com/<owner>/<name> address.`);
     if (!Array.isArray(entry.versions) || entry.versions.length === 0) return problems.push(`${where}: 'versions' must be a list with at least one version.`);
     const versions = new Set();
@@ -52,6 +59,10 @@ export function validateIndex(index) {
       else if (versions.has(v.version)) problems.push(`${at}: version ${v.version} is listed twice.`);
       else versions.add(v.version);
       if (typeof v.nexusApi !== 'string' || !API_RANGE.test(v.nexusApi)) problems.push(`${at}: 'nexusApi' must look like ^1.2.`);
+      if (!['pack', 'plugin'].includes(v.type)) problems.push(`${at}: 'type' must be "pack" or "plugin".`);
+      if (!Array.isArray(v.permissions) || v.permissions.some((x) => typeof x !== 'string' || !PERMISSION.test(x)) || new Set(v.permissions).size !== v.permissions.length) problems.push(`${at}: 'permissions' must be a list of distinct permission names (an empty list when the extension asks for nothing).`);
+      if (v.minAppVersion !== undefined && (typeof v.minAppVersion !== 'string' || !VERSION.test(v.minAppVersion))) problems.push(`${at}: 'minAppVersion' must be a SemVer.`);
+      if (v.minFirmwareBuild !== undefined && (!Number.isInteger(v.minFirmwareBuild) || v.minFirmwareBuild < 0)) problems.push(`${at}: 'minFirmwareBuild' must be a whole number.`);
       if (typeof v.sha256 !== 'string' || !SHA256.test(v.sha256)) problems.push(`${at}: 'sha256' must be 64 lower-case hex characters.`);
       if (!Number.isInteger(v.size) || v.size <= 0 || v.size > MAX_ZIP_BYTES) problems.push(`${at}: 'size' must be a whole number of bytes, at most ${MAX_ZIP_BYTES}.`);
       if (typeof v.url !== 'string') problems.push(`${at}: 'url' is missing.`);
@@ -93,13 +104,14 @@ export function compareWithBase(index, base) {
       if (v.testedWith !== undefined) problems.push(`${key}: 'testedWith' is written by the compatibility job, not by authors. Remove it.`);
       continue;
     }
-    for (const field of ['url', 'sha256', 'size', 'nexusApi']) if (old[field] !== v[field]) problems.push(`${key}: '${field}' of a published version never changes. Publish a new version instead.`);
+    for (const field of ['url', 'sha256', 'size', 'nexusApi', 'type', 'minAppVersion', 'minFirmwareBuild']) if (old[field] !== v[field]) problems.push(`${key}: '${field}' of a published version never changes. Publish a new version instead.`);
   }
   return { problems, added };
 }
 
 /** Download one version's zip and check what can be checked without installing it. Returns problems. */
-export async function checkRemote(id, v, fetchImpl = fetch) {
+export async function checkRemote(entry, v, fetchImpl = fetch) {
+  const id = entry.id;
   const key = `${id}@${v.version}`;
   let bytes;
   try {
@@ -121,6 +133,14 @@ export async function checkRemote(id, v, fetchImpl = fetch) {
     if (data.id !== id) problems.push(`${key}: the manifest's id is '${data.id}', not '${id}'.`);
     if (data.version !== v.version) problems.push(`${key}: the manifest's version is '${data.version}', not '${v.version}'.`);
     if (data.nexusApi !== v.nexusApi) problems.push(`${key}: the manifest's nexusApi is '${data.nexusApi}', not '${v.nexusApi}'.`);
+    // What the Store shows before anything is downloaded must be what the manifest says (the catalogue is signed, so it is what the app believes).
+    for (const field of ['name', 'author']) if (data[field] !== entry[field]) problems.push(`${key}: the manifest's ${field} is ${JSON.stringify(data[field])}, the catalogue says ${JSON.stringify(entry[field])}.`);
+    if ((data.description ?? '') !== (entry.description ?? '')) problems.push(`${key}: the manifest's description differs from the catalogue's.`);
+    if (data.type !== v.type) problems.push(`${key}: the manifest's type is '${data.type}', not '${v.type}'.`);
+    const asked = [...(data.permissions ?? [])].sort().join(',');
+    if (asked !== [...(v.permissions ?? [])].sort().join(',')) problems.push(`${key}: the manifest asks for [${asked}], the catalogue lists [${[...(v.permissions ?? [])].sort().join(',')}].`);
+    if ((data.minAppVersion ?? null) !== (v.minAppVersion ?? null)) problems.push(`${key}: the manifest's minAppVersion differs from the catalogue's.`);
+    if ((data.minFirmwareBuild ?? null) !== (v.minFirmwareBuild ?? null)) problems.push(`${key}: the manifest's minFirmwareBuild differs from the catalogue's.`);
   } catch (e) {
     problems.push(`${key}: cannot read the zip (${e.message}).`);
   }
@@ -148,7 +168,7 @@ async function main(argv) {
     only = new Set(compared.added);
   }
   if (argv.includes('--remote') && problems.length === 0) {
-    for (const e of index.extensions) for (const v of e.versions) if (!only || only.has(`${e.id}@${v.version}`)) problems.push(...(await checkRemote(e.id, v)));
+    for (const e of index.extensions) for (const v of e.versions) if (!only || only.has(`${e.id}@${v.version}`)) problems.push(...(await checkRemote(e, v)));
   }
   for (const p of problems) console.error(p);
   console.log(problems.length ? `${problems.length} problem(s).` : `${path}: ok (${flat(index).size} version(s) of ${index.extensions.length} extension(s)).`);

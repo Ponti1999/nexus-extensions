@@ -11,10 +11,15 @@ The list of extensions Nexus Studio's Store offers. It is a plain JSON file in t
     {
       "id": "com.example.night-pack",
       "repo": "https://github.com/someone/night-pack",
+      "name": "Night pack",
+      "author": "Someone",
+      "description": "Dark lighting presets.",
       "versions": [
         {
           "version": "1.0.0",
           "nexusApi": "^1.2",
+          "type": "pack",
+          "permissions": [],
           "url": "https://github.com/someone/night-pack/releases/download/v1.0.0/night-pack.nexusext",
           "sha256": "<64 lower-case hex characters>",
           "size": 12345
@@ -25,16 +30,22 @@ The list of extensions Nexus Studio's Store offers. It is a plain JSON file in t
 }
 ```
 
-An entry is an **id**, the author's **repo**, and every **version** that has been approved. Everything the Store shows about an extension (its name, author,
-description, whether it runs code, the permissions it asks for) is read from the `nexus-plugin.json` **inside the zip**, not copied here, so it cannot
-disagree with what the person installs.
+An entry is an **id**, the author's **repo**, the card the Store shows (**name**, **author**, **description**) and every **version** that has been approved.
+The Store has to draw its card before anything is downloaded, so the card is here, but it is **copied from the manifest and checked against it**: the check
+downloads the zip and refuses an entry whose name, author, description, `type`, `permissions`, `minAppVersion` or `minFirmwareBuild` differ from the
+`nexus-plugin.json` inside. The catalogue is signed, so the app believes it; the manifest remains what the person installs.
 
 | Field | Rule |
 |---|---|
 | `id` | lower-case reverse-domain, like `com.example.night-pack`. Never changes. The same rule as the manifest's `id`. |
 | `repo` | `https://github.com/<owner>/<name>`. Where the author keeps the code and releases. |
+| `name`, `author` | 1 to 60 characters. Must equal the manifest's. |
+| `description` | optional, at most 300 characters. Must equal the manifest's (absent = empty). |
 | `version` | SemVer (`1.2.3`, `1.2.3-beta.1`). Must equal the manifest's `version`. |
 | `nexusApi` | `^MAJOR.MINOR`. Must equal the manifest's `nexusApi`. |
+| `type` | `pack` (settings, no code) or `plugin` (runs code). Must equal the manifest's. |
+| `permissions` | the permissions the manifest asks for, as a list (`[]` for none). Must be the same set as the manifest's. |
+| `minAppVersion`, `minFirmwareBuild` | optional, as in the manifest. Must equal the manifest's. |
 | `url` | a release asset of `repo`, ending `.nexusext`: `<repo>/releases/download/<tag>/<file>.nexusext`. No other host, no query. |
 | `sha256` | the SHA-256 of the file, lower-case hex. The app checks it before it unpacks anything. |
 | `size` | the file's size in bytes, at most 20 MB (the app's limit). |
@@ -44,8 +55,8 @@ disagree with what the person installs.
 
 1. **A published version never changes.** Its `url`, `sha256`, `size` and `nexusApi` stay as they are. To fix something, publish a new version.
 2. **A version is never removed.** People on an older app keep installing the newest version their app can run, so an old one must stay.
-3. **The file is checked, not trusted.** The check downloads the zip and compares its size and SHA-256, and checks that the manifest's `id`, `version` and
-   `nexusApi` match the entry.
+3. **The file is checked, not trusted.** The check downloads the zip and compares its size and SHA-256, and checks that the manifest agrees with the entry (`id`,
+   `version`, `nexusApi` and every card and compatibility field above).
 4. **Approval is a human merging the pull request.** The checks only find mistakes; they do not decide what is safe to run. A code extension runs as the
    person's own Windows user and is not sandboxed, so read what an extension does before merging it.
 
