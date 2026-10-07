@@ -1,0 +1,21 @@
+{
+  "name": "nexus-extension-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Nexus Studio extensions: a small client for the local API (docs/api/v1.md in the app).",
+  "type": "module",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "files": ["build/src"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test build/test/*.test.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.6.0",
+    "ws": "^8.18.0"
+  }
+}
