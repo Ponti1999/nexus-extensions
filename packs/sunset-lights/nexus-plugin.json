@@ -1,0 +1,11 @@
+{
+  "id": "io.github.ponti1999.sunset-lights",
+  "name": "Sunset lights",
+  "version": "1.0.0",
+  "author": "Nexus Split",
+  "type": "pack",
+  "nexusApi": "^1.17",
+  "entry": "pack.json",
+  "description": "Warm lighting looks: Sunset and Embers.",
+  "permissions": []
+}
