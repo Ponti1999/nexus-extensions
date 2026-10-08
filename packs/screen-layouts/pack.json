@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "oled-layouts",
+  "presets": [
+    {
+      "id": "minimal",
+      "name": "Layer and fader",
+      "layout": {
+        "widgets": [
+          { "kind": 1, "row": 0, "col": 0, "scale": 1, "param": 0, "text": "LAYER " },
+          { "kind": 3, "row": 1, "col": 0, "scale": 1, "param": 0, "text": "FADER " }
+        ]
+      }
+    },
+    {
+      "id": "layer-name",
+      "name": "Layer name only",
+      "layout": { "widgets": [{ "kind": 2, "row": 0, "col": 0, "scale": 1, "param": 0, "text": "" }] }
+    },
+    {
+      "id": "slots",
+      "name": "The three slots",
+      "layout": {
+        "widgets": [
+          { "kind": 4, "row": 0, "col": 0, "scale": 1, "param": 0, "text": "S0:" },
+          { "kind": 4, "row": 1, "col": 0, "scale": 1, "param": 1, "text": "S1:" },
+          { "kind": 4, "row": 2, "col": 0, "scale": 1, "param": 2, "text": "S2:" }
+        ]
+      }
+    }
+  ]
+}

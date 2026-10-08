@@ -1,4 +1,41 @@
 {
   "schemaVersion": 1,
-  "extensions": []
+  "extensions": [
+    {
+      "id": "io.github.ponti1999.sunset-lights",
+      "repo": "https://github.com/Ponti1999/nexus-extensions",
+      "name": "Sunset lights",
+      "author": "Nexus Split",
+      "description": "Warm lighting looks: Sunset and Embers.",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "nexusApi": "^1.17",
+          "type": "pack",
+          "permissions": [],
+          "url": "https://github.com/Ponti1999/nexus-extensions/releases/download/sunset-lights-v1.0.0/sunset-lights.nexusext",
+          "sha256": "6d8d330a6fd87aea940e7c34aadb6407dbee6b7e58f3e6748bc54863cb5d283c",
+          "size": 570
+        }
+      ]
+    },
+    {
+      "id": "io.github.ponti1999.screen-layouts",
+      "repo": "https://github.com/Ponti1999/nexus-extensions",
+      "name": "Screen layouts",
+      "author": "Nexus Split",
+      "description": "Status page layouts for the keyboard's OLED.",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "nexusApi": "^1.18",
+          "type": "pack",
+          "permissions": [],
+          "url": "https://github.com/Ponti1999/nexus-extensions/releases/download/screen-layouts-v1.0.0/screen-layouts.nexusext",
+          "sha256": "f32ea3e2f31b25058bc9f72c08880cbe3af51a995e9879d00277a3fb7e2922ef",
+          "size": 683
+        }
+      ]
+    }
+  ]
 }
